@@ -1,93 +1,82 @@
-create table Users(
-    id serial primary key,
-    username varchar(28) not null unique,
-    passhash varchar not null
-);
+-- 安裝 uuid 擴展
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-create table public."Artists"(
-  id integer unique not null, 
-  username text not null unique,
-  display_name text not null,
-  avatar jsonb,
-  gender varchar,
-  PRIMARY KEY(id)
+-- 創建 Users 表
+CREATE TABLE public."Users" (
+    id serial PRIMARY KEY,
+    username varchar(28) NOT NULL UNIQUE,
+    passhash varchar NOT NULL
 );
 
-create table public."Tracks"(
-  id integer unique not null,
-  user_id integer not null,
-  tags text[] not null DEFAULT '{}',
-  moods text[] not null DEFAULT '{}',
-  genres text[] not null DEFAULT '{}',
-  movements text[] not null DEFAULT '{}',
-  keywords text not null,
-  duration float not null,
-  track_name text not null,
-  download_url text not null,
-  src text not null,
-  cover_image jsonb,
-  PRIMARY KEY(id)
+-- 創建 Artists 表
+CREATE TABLE public."Artists" (
+    id integer UNIQUE NOT NULL, 
+    username text NOT NULL UNIQUE,
+    display_name text NOT NULL,
+    avatar jsonb,
+    gender varchar,
+    PRIMARY KEY(id)
 );
 
-alter table songs
-add constraint user_id_fk FOREIGN KEY (user_id) REFERENCES artists(id)
-match full on update CASCADE on delete CASCADE;
-
-create table public."Liked"(
-    id serial primary key,
-    track_id integer not null,
-    username varchar(28) not null
+-- 創建 Tracks 表
+CREATE TABLE public."Tracks" (
+    id integer UNIQUE NOT NULL,
+    user_id integer NOT NULL,
+    tags text[] NOT NULL DEFAULT '{}',
+    moods text[] NOT NULL DEFAULT '{}',
+    genres text[] NOT NULL DEFAULT '{}',
+    movements text[] NOT NULL DEFAULT '{}',
+    keywords text NOT NULL,
+    duration float NOT NULL,
+    track_name text NOT NULL,
+    download_url text NOT NULL,
+    src text NOT NULL,
+    cover_image jsonb,
+    PRIMARY KEY(id),
+    CONSTRAINT user_id_fk FOREIGN KEY (user_id) REFERENCES public."Artists"(id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-alter table public."Liked" add constraint track_id FOREIGN KEY(track_id)
-REFERENCES public."Tracks"(id) match full on update CASCADE on delete cascade;
-
-alter table public."Liked" add constraint user_id FOREIGN KEY(username)
-REFERENCES public."Users"(username) match full on update CASCADE on delete cascade;
-
-create table public."Collections"(
-  id uuid PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
-  name text not null,
-  username varchar(28) not null,
-  total_tracks integer DEFAULT 0
-)
-
-alter table public."Collections" add constraint user_id FOREIGN KEY(username)
-REFERENCES public."Users"(username) match full on update CASCADE on delete cascade;
-
-create table public."CollectionItems"(
-  collection_id uuid not null,
-  track_id integer not null
+-- 創建 Liked 表
+CREATE TABLE public."Liked" (
+    id serial PRIMARY KEY,
+    track_id integer NOT NULL,
+    username varchar(28) NOT NULL,
+    CONSTRAINT track_id_fk FOREIGN KEY(track_id) REFERENCES public."Tracks"(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT user_id_fk FOREIGN KEY(username) REFERENCES public."Users"(username) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+-- 創建 Collections 表
+CREATE TABLE public."Collections" (
+    id uuid PRIMARY KEY NOT NULL DEFAULT uuid_generate_v4(),
+    name text NOT NULL,
+    username varchar(28) NOT NULL,
+    total_tracks integer DEFAULT 0,
+    CONSTRAINT user_id_fk FOREIGN KEY(username) REFERENCES public."Users"(username) ON UPDATE CASCADE ON DELETE CASCADE
+);
 
-alter table public."CollectionItems" add constraint collection_id_fk FOREIGN KEY(collection_id)
-REFERENCES public."Collections"(id) match full on update CASCADE on delete cascade;
+-- 創建 CollectionItems 表
+CREATE TABLE public."CollectionItems" (
+    collection_id uuid NOT NULL,
+    track_id integer NOT NULL,
+    CONSTRAINT collection_id_fk FOREIGN KEY(collection_id) REFERENCES public."Collections"(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT track_id_fk FOREIGN KEY(track_id) REFERENCES public."Tracks"(id) ON UPDATE CASCADE ON DELETE CASCADE
+);
 
-alter table public."CollectionItems" add constraint track_id_fk FOREIGN KEY(track_id)
-REFERENCES public."Tracks"(id) match full on update CASCADE on delete cascade;
-
-
+-- 創建 update_collections 函數和觸發器
 CREATE OR REPLACE FUNCTION update_collections()
   RETURNS trigger AS $$
-  DECLARE
-    BEGIN
+  BEGIN
     IF TG_OP = 'INSERT' THEN
-      EXECUTE 'update public."Collections" set total_tracks=total_tracks+1 where id = $1;' 
+      EXECUTE 'UPDATE public."Collections" SET total_tracks = total_tracks + 1 WHERE id = $1;'
       USING NEW.collection_id;
-    END IF;
-
-    IF TG_OP = 'DELETE' THEN 
-      EXECUTE 'update public."Collections" set total_tracks=total_tracks-1 where id = $1;' 
+    ELSIF TG_OP = 'DELETE' THEN
+      EXECUTE 'UPDATE public."Collections" SET total_tracks = total_tracks - 1 WHERE id = $1;'
       USING OLD.collection_id;
     END IF;
-    
     RETURN NEW;
-    END;
+  END;
 $$ LANGUAGE plpgsql;
 
-  
 CREATE TRIGGER update_collection
 AFTER INSERT OR DELETE ON public."CollectionItems"
 FOR EACH ROW EXECUTE PROCEDURE update_collections();
