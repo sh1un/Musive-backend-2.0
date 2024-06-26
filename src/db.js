@@ -9,7 +9,11 @@ const Pool = pg.Pool;
 
 const pool = new Pool({
   connectionString: process.env.DB_URL,
-  ssl: false,
+  // In localhost environment please use `ssl: false`
+  // ssl: false
+  ssl: {
+    rejectUnauthorized: false
+  },
 });
 
 export default pool;
