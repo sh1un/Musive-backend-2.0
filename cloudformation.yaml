@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Setup EC2 instance with Next.js and Node.js, and RDS PostgreSQL
+
+Parameters:
+  InstanceType:
+    Type: String
+    Default: t3.micro
+    Description: EC2 instance type
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
+
+Resources:
+  MyEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyName
+      ImageId: ami-0cf2b4e024cdb6960 # Ubuntu Server 22.04 LTS (HVM), SSD Volume Type
+      SecurityGroups:
+        - !Ref InstanceSecurityGroup
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          apt-get update -y
+          apt-get upgrade -y
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+          source ~/.bashrc
+          nvm install 20
+          npm install -g pm2
+          cd /home/ubuntu
+          git clone https://github.com/sh1un/Nextjs-Musive-app.git
+          cd Nextjs-Musive-app
+          npm install
+          export MUSIVE_API_URL="http://localhost:4444/api"
+          npm run build
+          pm2 start npm --name nextjs-app -- start -- -p 3000
+          cd /home/ubuntu
+          git clone https://github.com/sh1un/Musive-backend-2.0.git
+          cd Musive-backend-2.0
+          export DB_URL="postgres://postgres:1234567890@${MyDBInstance.Endpoint.Address}:5432/musive"
+          export TOKENKEY="shiun0413"
+          export PORT="4444"
+          npm install
+          pm2 start npm --name musive-backend -- start
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enable HTTP, HTTPS and SSH access
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3000
+          ToPort: 3000
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 4444
+          ToPort: 4444
+          CidrIp: 0.0.0.0/0
+
+  MyDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS DB Instance
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          CidrIp: 0.0.0.0/0
+
+  MyDBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      DBName: musive
+      Engine: postgres
+      EngineVersion: '16.3'
+      MasterUsername: postgres
+      MasterUserPassword: 1234567890
+      VPCSecurityGroups:
+        - !GetAtt MyDBSecurityGroup.GroupId
+      PubliclyAccessible: true
+    DependsOn: MyDBSecurityGroup
+
+Outputs:
+  InstanceId:
+    Description: The InstanceId of the newly created EC2 instance
+    Value: !Ref MyEC2Instance
+  PublicIP:
+    Description: Public IP address of the EC2 instance
+    Value: !GetAtt MyEC2Instance.PublicIp
+  RDSEndpoint:
+    Description: The endpoint of the RDS instance
+    Value: !GetAtt MyDBInstance.Endpoint.Address
+  RDSHostPort:
+    Description: The port of the RDS instance
+    Value: !GetAtt MyDBInstance.Endpoint.Port
