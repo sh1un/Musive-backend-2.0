@@ -65,7 +65,8 @@ Resources:
           git clone https://github.com/sh1un/Nextjs-Musive-app.git
           cd Nextjs-Musive-app
           npm install
-          export MUSIVE_API_URL="http://$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4):4444/api"
+          TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+          export MUSIVE_API_URL="http://$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4):4444/api"
           npm run build
           pm2 start npm --name nextjs-app -- start -- -p 3000
 
