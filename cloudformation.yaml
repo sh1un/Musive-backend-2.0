@@ -11,7 +11,7 @@ Parameters:
     Description: Name of an existing EC2 KeyPair to enable SSH access to the instances
   AMIId:
     Type: String
-    Default: ami-0cf2b4e024cdb6960 # 請替換為有效的 AMI ID
+    Default: ami-0cf2b4e024cdb6960 # Replace with a valid AMI ID
     Description: AMI ID for the EC2 instance
 
 Resources:
@@ -30,8 +30,11 @@ Resources:
           set -o xtrace
           apt update -y
           apt upgrade -y
-          apt install -y curl
-          
+          apt install -y curl git
+
+          # Switch to ubuntu user and execute the following commands
+          sudo -i -u ubuntu bash << 'EOF'
+
           # Install NVM
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
           export NVM_DIR="$HOME/.nvm"
@@ -42,21 +45,14 @@ Resources:
           echo 'export NVM_DIR="$HOME/.nvm"' >> /home/ubuntu/.bashrc
           echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /home/ubuntu/.bashrc
           echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> /home/ubuntu/.bashrc
-
+          
           # Source bashrc to load NVM
           source /home/ubuntu/.bashrc
-
-          # Verify NVM installation
-          command -v nvm
-
+          
           # Install Node.js 20
           nvm install 20
           nvm use 20
-
-          # Verify Node.js and NPM installation
-          node -v
-          npm -v
-
+          
           # Install PM2
           npm install -g pm2
 
@@ -65,7 +61,7 @@ Resources:
           git clone https://github.com/sh1un/Nextjs-Musive-app.git
           cd Nextjs-Musive-app
           npm install
-          TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+          TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
           export MUSIVE_API_URL="http://$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4):4444/api"
           npm run build
           pm2 start npm --name nextjs-app -- start -- -p 3000
@@ -79,6 +75,7 @@ Resources:
           export PORT="4444"
           npm install
           pm2 start npm --name musive-backend -- start
+          EOF
 
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
