@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Setup EC2 instance with Next.js and Node.js, and RDS PostgreSQL
+Description: Setup EC2 instance with Next.js and Node.js, RDS PostgreSQL, and IAM User with Administrator Access
 
 Parameters:
   InstanceType:
@@ -13,6 +13,14 @@ Parameters:
     Type: String
     Default: ami-0cf2b4e024cdb6960 # Replace with a valid AMI ID
     Description: AMI ID for the EC2 instance
+  IAMUserName:
+    Type: String
+    Default: workshopuser
+    Description: Name of the IAM user to create for workshop participants
+  IAMUserPassword:
+    Type: String
+    NoEcho: true
+    Description: Password for the IAM user (at least 8 characters, including uppercase, lowercase, number, and special character) For example, Workshop!123
 
 Resources:
   MyEC2Instance:
@@ -32,15 +40,19 @@ Resources:
           apt upgrade -y
           apt install -y curl git
 
+
           # Switch to ubuntu user and execute the following commands
           sudo -i -u ubuntu bash << 'EOF'
+
+          # Install PostgreSQL client
+          sudo apt install -y postgresql-client-16
 
           # Install NVM
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-          
+
           # Add NVM to bashrc
           echo 'export NVM_DIR="$HOME/.nvm"' >> /home/ubuntu/.bashrc
           echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /home/ubuntu/.bashrc
@@ -76,6 +88,32 @@ Resources:
           npm install
           pm2 start npm --name musive-backend -- start
           EOF
+
+  IAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      UserName: !Ref IAMUserName
+      LoginProfile:
+        Password: !Ref IAMUserPassword
+        PasswordResetRequired: false
+
+  IAMUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref IAMUser
+
+  IAMPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: AdminAccessPolicy
+      Users:
+        - !Ref IAMUser
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: '*'
+            Resource: '*'
 
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -129,6 +167,18 @@ Resources:
     DependsOn: MyDBSecurityGroup
 
 Outputs:
+  AWSAccountId:
+    Description: AWS Account ID
+    Value: !Sub "${AWS::AccountId}"
+  IAMUserName:
+    Description: IAM user name
+    Value: !Ref IAMUserName
+  IAMUserAccessKey:
+    Description: Access key for the IAM user
+    Value: !Ref IAMUserAccessKey
+  IAMUserSecretKey:
+    Description: Secret key for the IAM user
+    Value: !GetAtt IAMUserAccessKey.SecretAccessKey
   InstanceId:
     Description: The InstanceId of the newly created EC2 instance
     Value: !Ref MyEC2Instance
