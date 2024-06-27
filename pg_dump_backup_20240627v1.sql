@@ -254,9 +254,6 @@ COPY public."Tracks" (id, user_id, tags, moods, genres, movements, keywords, dur
 --
 
 COPY public."Users" (id, username, passhash) FROM stdin;
-1	anshrathod2	$2b$10$9VXN.bDyTKAAfyEgGdLxJuM9CRBx4ENU3GnCDBZ5xRt7rx8dMmyPW
-2	user	$2b$10$8j46/Y3eY/ZhUTlBgF4MU.O/hDFcgTK0NCP6sqRBmIV9X4FSn58aW
-3	admin	$2b$10$bb4i7wNB6.QCtGukbOUr.eJ5POHUTDsSM.ivcil0C3Ad8w8zK/KG2
 \.
 
 
@@ -271,7 +268,7 @@ SELECT pg_catalog.setval('public."Liked_id_seq"', 1, false);
 -- Name: Users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Users_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Users_id_seq"', 4, true);
 
 
 --
