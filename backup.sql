@@ -208,8 +208,7 @@ ALTER TABLE ONLY public."Users" ALTER COLUMN id SET DEFAULT nextval('public."Use
 --
 
 COPY public."Artists" (id, username, display_name, avatar, gender) FROM stdin;
-27953103	sunoai	Suno AI	{"url": "https://dva2ezlbhiel5.cloudfront.net/artist/Suno-AI.jpg?", "color": "#d9c0c0"}	male
-24653570	lofigirl	Lofi Girl	{"url": "https://dva2ezlbhiel5.cloudfront.net/artist/Lofi_girl_logo.jpg?", "color": "#d9d9d9"}	female
+24653570	lofiboy	Lofi Boy	{"url": "https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/artist/summer-boy.png?", "color": "#5c58bc"}	male
 \.
 
 
@@ -242,10 +241,7 @@ COPY public."Liked" (id, track_id, username) FROM stdin;
 --
 
 COPY public."Tracks" (id, user_id, tags, moods, genres, movements, keywords, duration, track_name, download_url, src, cover_image) FROM stdin;
-99124	24653570	{}	{}	{}	{}	Good	181	Aurora	https://dva2ezlbhiel5.cloudfront.net/music/2.-aurora-ft.-Outgrown-master.mp3	https://dva2ezlbhiel5.cloudfront.net/music/2.-aurora-ft.-Outgrown-master.mp3	{"url": "https://dva2ezlbhiel5.cloudfront.net/cover/aurora-cover.png?", "color": "#6ccab3"}
-421790	27953103	{}	{}	{}	{}	Good	134	Cloud Journey	https://dva2ezlbhiel5.cloudfront.net/music/Cloud+Journey.mp3	https://dva2ezlbhiel5.cloudfront.net/music/Cloud+Journey.mp3	{"url": "https://dva2ezlbhiel5.cloudfront.net/cover/cloud-journey-cover.png?", "color": "#f3913a"}
-421789	27953103	{}	{}	{}	{}	Good	94	Midnight Snack	https://dva2ezlbhiel5.cloudfront.net/music/Midnight+Snack.mp3	https://dva2ezlbhiel5.cloudfront.net/music/Midnight+Snack.mp3	{"url": "https://dva2ezlbhiel5.cloudfront.net/cover/midnight-snack-cover.png?", "color": "#dc2640"}
-99123	24653570	{}	{}	{}	{}	Good	139	breezehome	https://dva2ezlbhiel5.cloudfront.net/music/1.%20breezehome.mp3	https://dva2ezlbhiel5.cloudfront.net/music/1.%20breezehome.mp3	{"url": "https://dva2ezlbhiel5.cloudfront.net/artist/offline-cover.png?", "color": "#0c2640"}
+99999	24653570	{lofi}	{chill}	{lofi}	{lofi}	{lofi}	142	Oregon	https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/music/3.+oregon.mp3?	https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/music/3.+oregon.mp3?	{"url": "https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/cover/aurora-cover.png?", "color": "#62dbaf"}
 \.
 
 
@@ -261,14 +257,14 @@ COPY public."Users" (id, username, passhash) FROM stdin;
 -- Name: Liked_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Liked_id_seq"', 1, false);
+SELECT pg_catalog.setval('public."Liked_id_seq"', 1, true);
 
 
 --
 -- Name: Users_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public."Users_id_seq"', 4, true);
+SELECT pg_catalog.setval('public."Users_id_seq"', 3, true);
 
 
 --
@@ -343,6 +339,14 @@ ALTER TABLE ONLY public."CollectionItems"
 
 
 --
+-- Name: Liked track_id; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Liked"
+    ADD CONSTRAINT track_id FOREIGN KEY (track_id) REFERENCES public."Tracks"(id) MATCH FULL ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
 -- Name: Liked track_id_fk; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -356,6 +360,22 @@ ALTER TABLE ONLY public."Liked"
 
 ALTER TABLE ONLY public."CollectionItems"
     ADD CONSTRAINT track_id_fk FOREIGN KEY (track_id) REFERENCES public."Tracks"(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Liked user_id; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Liked"
+    ADD CONSTRAINT user_id FOREIGN KEY (username) REFERENCES public."Users"(username) MATCH FULL ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: Collections user_id; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public."Collections"
+    ADD CONSTRAINT user_id FOREIGN KEY (username) REFERENCES public."Users"(username) MATCH FULL ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 --

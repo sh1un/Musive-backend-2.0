@@ -88,6 +88,9 @@ Resources:
           npm install
           pm2 start npm --name musive-backend -- start
           EOF
+      Tags:
+        - Key: Name
+          Value: musive-app
 
   IAMUser:
     Type: AWS::IAM::User
