@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Setup EC2 instance with Next.js and Node.js, RDS PostgreSQL, and IAM User with Administrator Access
+Description: Setup EC2 instance with Next.js and Node.js, RDS PostgreSQL
 
 Parameters:
   InstanceType:
@@ -13,14 +13,6 @@ Parameters:
     Type: String
     Default: ami-0cf2b4e024cdb6960 # Replace with a valid AMI ID
     Description: AMI ID for the EC2 instance
-  IAMUserName:
-    Type: String
-    Default: workshopuser
-    Description: Name of the IAM user to create for workshop participants
-  IAMUserPassword:
-    Type: String
-    NoEcho: true
-    Description: Password for the IAM user (at least 8 characters, including uppercase, lowercase, number, and special character) For example, Workshop!123
 
 Resources:
   MyEC2Instance:
@@ -31,47 +23,36 @@ Resources:
       ImageId: !Ref AMIId
       SecurityGroups:
         - !Ref InstanceSecurityGroup
-      UserData:
-        Fn::Base64: !Sub |
+      UserData: !Base64
+        Fn::Sub: |
           #!/bin/bash
           exec > /var/log/user-data.log 2>&1
           set -o xtrace
-
           # Avoid interactive prompts
           export DEBIAN_FRONTEND=noninteractive
-
           apt update -y
           apt-get dist-upgrade -y --exclude=linux-image-*
           apt install -y curl git
-
-
           # Switch to ubuntu user and execute the following commands
           sudo -i -u ubuntu bash << 'EOF'
-
           # Install PostgreSQL client
           sudo apt install -y postgresql-client-16
-
           # Install NVM
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
           export NVM_DIR="$HOME/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
           # Add NVM to bashrc
           echo 'export NVM_DIR="$HOME/.nvm"' >> /home/ubuntu/.bashrc
           echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /home/ubuntu/.bashrc
           echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> /home/ubuntu/.bashrc
-          
           # Source bashrc to load NVM
           source /home/ubuntu/.bashrc
-          
           # Install Node.js 20
           nvm install 20
           nvm use 20
-          
           # Install PM2
           npm install -g pm2
-
           # Clone and set up Next.js application
           cd /home/ubuntu
           git clone https://github.com/sh1un/Nextjs-Musive-app.git
@@ -81,7 +62,6 @@ Resources:
           export MUSIVE_API_URL="http://$(curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4):4444/api"
           npm run build
           pm2 start npm --name nextjs-app -- start -- -p 3000
-
           # Clone and set up backend application
           cd /home/ubuntu
           git clone https://github.com/sh1un/Musive-backend-2.0.git
@@ -95,32 +75,6 @@ Resources:
       Tags:
         - Key: Name
           Value: musive-app
-
-  IAMUser:
-    Type: AWS::IAM::User
-    Properties:
-      UserName: !Ref IAMUserName
-      LoginProfile:
-        Password: !Ref IAMUserPassword
-        PasswordResetRequired: false
-
-  IAMUserAccessKey:
-    Type: AWS::IAM::AccessKey
-    Properties:
-      UserName: !Ref IAMUser
-
-  IAMPolicy:
-    Type: AWS::IAM::Policy
-    Properties:
-      PolicyName: AdminAccessPolicy
-      Users:
-        - !Ref IAMUser
-      PolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Action: '*'
-            Resource: '*'
 
   InstanceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -176,16 +130,7 @@ Resources:
 Outputs:
   AWSAccountId:
     Description: AWS Account ID
-    Value: !Sub "${AWS::AccountId}"
-  IAMUserName:
-    Description: IAM user name
-    Value: !Ref IAMUserName
-  IAMUserAccessKey:
-    Description: Access key for the IAM user
-    Value: !Ref IAMUserAccessKey
-  IAMUserSecretKey:
-    Description: Secret key for the IAM user
-    Value: !GetAtt IAMUserAccessKey.SecretAccessKey
+    Value: !Sub ${AWS::AccountId}
   InstanceId:
     Description: The InstanceId of the newly created EC2 instance
     Value: !Ref MyEC2Instance
