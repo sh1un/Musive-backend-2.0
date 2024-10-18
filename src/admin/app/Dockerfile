@@ -1,4 +1,7 @@
 FROM public.ecr.aws/docker/library/python:3.12.0-slim-bullseye
+
+RUN apt-get update && apt-get install -y gcc libpq-dev
+
 COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 /lambda-adapter /opt/extensions/lambda-adapter
 
 WORKDIR /app

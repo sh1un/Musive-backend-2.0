@@ -1,16 +1,50 @@
 import os
+import subprocess
 from typing import List, Optional
 
+import uvicorn
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from sqlalchemy import JSONB, Column, Integer, String, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import Column, Integer, String, create_engine
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 app = FastAPI()
 
-# 定義 Artists 資料表的資料模型
+# CORS 設定
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.mount("/demo", StaticFiles(directory="static", html=True))
+
+
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/demo/")
+
+
+# 建立資料庫連線引擎
+engine = create_engine("postgresql://user:password@localhost/dbname")
+
+# 定義 SessionLocal 來管理資料庫會話
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# 定義 Artists 和 Tracks 資料表的資料模型
 Base = declarative_base()
+
+
+class DatabaseConfig(BaseModel):
+    database_url: str  # RDS Endpoint，例如 your-rds-endpoint
+    username: str  # 資料庫使用者名稱，例如 postgres
+    password: str  # 資料庫密碼
 
 
 class Artist(Base):
@@ -23,6 +57,22 @@ class Artist(Base):
     gender = Column(String)
 
 
+class Track(Base):
+    __tablename__ = "Tracks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, index=True)
+    tags = Column(String)
+    moods = Column(String)
+    genres = Column(String)
+    movements = Column(String)
+    track_name = Column(String, index=True)
+    duration = Column(Integer)
+    download_url = Column(String)
+    src = Column(String)
+    cover_image = Column(JSONB)
+
+
 # Pydantic model for request body
 class ArtistCreate(BaseModel):
     id: int
@@ -32,21 +82,16 @@ class ArtistCreate(BaseModel):
     gender: str
 
 
-# 請求中帶入 database_url 和 password
-class DatabaseConfig(BaseModel):
-    database_url: str
-    username: str
-    password: str
+class InitDatabaseRequest(BaseModel):
+    database_url: str  # RDS Endpoint，例如 your-rds-endpoint
+    username: str  # 資料庫使用者名稱，例如 postgres
+    password: str  # 資料庫密碼
+    db_name: str  # 資料庫名稱，例如 musive
+    port: int = 5432  # 預設 port 為 5432
 
 
 # Dependency - 根據請求中的資料動態建立資料庫連線
 def get_db(config: DatabaseConfig):
-    # 建立動態的資料庫 URL，這裡用 username 和 password 組合
-    db_url = f"postgresql://{config.username}:{config.password}@{config.database_url}"
-    engine = create_engine(db_url)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base.metadata.create_all(bind=engine)
-
     db = SessionLocal()
     try:
         yield db
@@ -57,7 +102,7 @@ def get_db(config: DatabaseConfig):
 # POST /artists - 新增 Artist 資料
 @app.post("/artists/")
 def create_artist(
-    artist: ArtistCreate, config: DatabaseConfig, db: SessionLocal = Depends(get_db)
+    artist: ArtistCreate, config: DatabaseConfig, db: sessionmaker = Depends(get_db)
 ):
     db_artist = db.query(Artist).filter(Artist.username == artist.username).first()
     if db_artist:
@@ -78,7 +123,37 @@ def create_artist(
     return new_artist
 
 
-if __name__ == "__main__":
-    import uvicorn
+# 初始化 API - 執行 backup.sql
+@app.post("/initialize/")
+def initialize_database(request: InitDatabaseRequest):
+    backup_file = os.path.join(os.getcwd(), "backup.sql")
 
+    if not os.path.exists(backup_file):
+        raise HTTPException(status_code=400, detail="Backup file not found.")
+
+    psql_command = [
+        "psql",
+        f"-h{request.database_url}",
+        f"-U{request.username}",
+        f"-d{request.db_name}",
+        f"-p{request.port}",
+        "-f",
+        backup_file,
+    ]
+
+    env = os.environ.copy()
+    env["PGPASSWORD"] = request.password
+
+    try:
+        result = subprocess.run(psql_command, env=env, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise HTTPException(status_code=500, detail=result.stderr)
+
+        return {"message": "Database initialized successfully."}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", "8080")))
