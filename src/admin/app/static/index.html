@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Psy test demo</title>
+    <title>Unified API Demo</title>
     <link rel="stylesheet" href="style.css" />
     <link
       rel="stylesheet"
@@ -20,62 +20,235 @@
   <body>
     <div id="container" class="row">
       <div class="column column-67">
-        <h1>Psy test demo (us-east-1)</h1>
-        <h4>
-          Enter your request details below and let the AI generate a response.
-        </h4>
+        <h1>Unified API Demo</h1>
 
-        <!-- Input fields for model, system prompt, and user message -->
-        <label for="model">Model:</label>
-        <small
-          ><a
-            href="https://docs.aws.amazon.com/bedrock/latest/userguide/model-ids.html"
-            target="_blank"
-            >Refer to the AWS Bedrock model IDs documentation</a
-          ></small
-        >
-        <input
-          type="text"
-          id="model"
-          placeholder="Enter model ID (e.g., 'anthropic.claude-3-sonnet-20240229-v1:0')"
-          value="anthropic.claude-3-sonnet-20240229-v1:0"
-        />
+        <!-- Unified Database Configuration Input -->
+        <h4>Database Configuration (for all API calls):</h4>
+        <label for="database-url">RDS Endpoint:</label>
+        <input type="text" id="db-endpoint" placeholder="Enter RDS Endpoint" />
 
-        <label for="system">System Prompt:</label>
-        <textarea id="system" placeholder="Enter system prompt"></textarea>
+        <div class="tab-container">
+          <button class="tab-button active" data-tab="initialize">
+            Initialize DB
+          </button>
+          <button class="tab-button" data-tab="create-artist">
+            Create Artist
+          </button>
+          <button class="tab-button" data-tab="create-track">
+            Create Track
+          </button>
+          <button class="tab-button" data-tab="update-artist">
+            Update Artist
+          </button>
+          <button class="tab-button" data-tab="update-track">
+            Update Track
+          </button>
+        </div>
 
-        <label for="user-message">User Message:</label>
-        <textarea id="user-message" placeholder="Enter user message"></textarea>
+        <!-- Initialize DB Section -->
+        <div id="initialize" class="tab-content active">
+          <h4>Initialize Database</h4>
+          <button id="initialize-db">Initialize DB</button>
+          <div id="initialize-output"></div>
+        </div>
 
-        <!-- Input for max_tokens and temperature -->
-        <label for="max-tokens">Max Tokens:</label>
-        <input
-          type="number"
-          id="max-tokens"
-          value="1024"
-          min="1"
-          placeholder="Enter max tokens"
-        />
+        <!-- Create Artist Section -->
+        <div id="create-artist" class="tab-content">
+          <h4>Create New Artist</h4>
+          <label for="artist-id">Artist ID:</label>
+          <input
+            type="number"
+            id="artist-id"
+            placeholder="Enter Artist ID"
+            value="1"
+          />
 
-        <label for="temperature">Temperature:</label>
-        <input
-          type="number"
-          step="0.1"
-          id="temperature"
-          value="0.5"
-          min="0"
-          max="1"
-          placeholder="Enter temperature"
-        />
+          <label for="artist-username">Artist Username:</label>
+          <input
+            type="text"
+            id="artist-username"
+            placeholder="Enter Artist Username"
+            value="sunoai"
+          />
 
-        <!-- Button to trigger the API call -->
-        <button id="generate-response">Generate</button>
+          <label for="artist-displayname">Artist Display Name:</label>
+          <input
+            type="text"
+            id="artist-displayname"
+            placeholder="Enter Artist Display Name"
+            value="Suno AI"
+          />
 
-        <!-- Output area for the story -->
-        <div id="story-output"></div>
+          <label for="artist-avatar-url">Artist Avatar URL:</label>
+          <input
+            type="text"
+            id="artist-avatar-url"
+            placeholder="Enter Avatar URL"
+          />
+
+          <label for="artist-avatar-color">Artist Avatar Color:</label>
+          <input
+            type="text"
+            id="artist-avatar-color"
+            placeholder="Enter Avatar Color"
+            value="#d9c0c0"
+          />
+
+          <label for="artist-gender">Artist Gender:</label>
+          <input
+            type="text"
+            id="artist-gender"
+            placeholder="Enter Artist Gender, male or female"
+            value="male"
+          />
+
+          <button id="create-artist-btn">Create Artist</button>
+          <div id="artist-output"></div>
+        </div>
+
+        <!-- Create Track Section -->
+        <div id="create-track" class="tab-content">
+          <h4>Create New Track</h4>
+          <label for="track-id">Track ID:</label>
+          <input
+            type="number"
+            id="track-id"
+            placeholder="Enter Track ID"
+            value="1"
+          />
+
+          <label for="user-id">Artist ID:</label>
+          <input
+            type="number"
+            id="user-id"
+            placeholder="Enter Artist ID"
+            value="1"
+          />
+
+          <label for="track-name">Track Name:</label>
+          <input
+            type="text"
+            id="track-name"
+            placeholder="Enter Track Name"
+            value="Cloud Journey"
+          />
+
+          <label for="track-duration">Duration (in seconds):</label>
+          <input
+            type="number"
+            id="track-duration"
+            placeholder="Enter Duration"
+            value="134"
+          />
+
+          <label for="track-download-url">Download URL:</label>
+          <input
+            type="text"
+            id="track-download-url"
+            placeholder="Enter Download URL"
+          />
+
+          <label for="track-src">Source URL:</label>
+          <input
+            type="text"
+            id="track-src"
+            placeholder="Enter Source URL, same as Download URL"
+          />
+
+          <label for="track-cover-url">Cover Image URL:</label>
+          <input
+            type="text"
+            id="track-cover-url"
+            placeholder="Enter Cover URL"
+          />
+
+          <label for="track-cover-color">Cover Color:</label>
+          <input
+            type="text"
+            id="track-cover-color"
+            placeholder="Enter Cover Color"
+            value="#d9c0c0"
+          />
+
+          <button id="create-track-btn">Create Track</button>
+          <div id="track-output"></div>
+        </div>
+
+        <!-- Update Artist Section -->
+        <div id="update-artist" class="tab-content">
+          <h4>Update Artist</h4>
+          <label for="artist-username-update">Artist Username:</label>
+          <input
+            type="text"
+            id="artist-username-update"
+            placeholder="Enter artist username"
+            value="sunoai"
+          />
+
+          <label for="artist-avatar-url-update">Avatar URL:</label>
+          <input
+            type="text"
+            id="artist-avatar-url-update"
+            placeholder="Enter avatar URL"
+          />
+
+          <label for="artist-avatar-color-update">Avatar Color:</label>
+          <input
+            type="text"
+            id="artist-avatar-color-update"
+            placeholder="Enter avatar color"
+            value="#d9c0c0"
+          />
+
+          <button id="update-artist-btn">Update Artist</button>
+          <div id="update-artist-output"></div>
+        </div>
+
+        <!-- Update Track Section -->
+        <div id="update-track" class="tab-content">
+          <h4>Update Track</h4>
+          <label for="track-name-update">Track Name:</label>
+          <input
+            type="text"
+            id="track-name-update"
+            placeholder="Enter track name"
+            value="Cloud Journey"
+          />
+
+          <label for="track-download-url-update">Download URL:</label>
+          <input
+            type="text"
+            id="track-download-url-update"
+            placeholder="Enter download URL"
+          />
+
+          <label for="track-src-update">Source URL:</label>
+          <input
+            type="text"
+            id="track-src-update"
+            placeholder="Enter source URL, same as Download URL"
+          />
+
+          <label for="track-cover-url-update">Cover Image URL:</label>
+          <input
+            type="text"
+            id="track-cover-url-update"
+            placeholder="Enter cover image URL"
+          />
+
+          <label for="track-cover-color-update">Cover Image Color:</label>
+          <input
+            type="text"
+            id="track-cover-color-update"
+            placeholder="Enter cover image color"
+            value="#f3913a"
+          />
+
+          <button id="update-track-btn">Update Track</button>
+          <div id="update-track-output"></div>
+        </div>
       </div>
     </div>
-
     <script src="script.js"></script>
   </body>
 </html>
