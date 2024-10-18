@@ -207,50 +207,25 @@ ALTER TABLE ONLY public."Users" ALTER COLUMN id SET DEFAULT nextval('public."Use
 -- Data for Name: Artists; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY public."Artists" (id, username, display_name, avatar, gender) FROM stdin;
-24653570	lofiboy	Lofi Boy	{"url": "https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/artist/summer-boy.png?", "color": "#5c58bc"}	male
-\.
+INSERT INTO public."Artists" (id, username, display_name, avatar, gender)
+VALUES
+(24653570, 'lofiboy', 'Lofi Boy', '{"url": "https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/artist/summer-boy.png?", "color": "#5c58bc"}'::jsonb, 'male');
 
 
---
--- Data for Name: CollectionItems; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."CollectionItems" (collection_id, track_id) FROM stdin;
-\.
 
 
---
--- Data for Name: Collections; Type: TABLE DATA; Schema: public; Owner: postgres
---
 
-COPY public."Collections" (id, name, username, total_tracks) FROM stdin;
-\.
-
-
---
--- Data for Name: Liked; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."Liked" (id, track_id, username) FROM stdin;
-\.
-
-
---
 -- Data for Name: Tracks; Type: TABLE DATA; Schema: public; Owner: postgres
---
+INSERT INTO public."Tracks" (id, user_id, tags, moods, genres, movements, keywords, duration, track_name, download_url, src, cover_image)
+VALUES
+    (99999, 24653570, '{lofi}', '{chill}', '{lofi}', '{lofi}', 'lofi', 142, 'Oregon',
+     'https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/music/3.+oregon.mp3?',
+     'https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/music/3.+oregon.mp3?',
+     '{"url": "https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/cover/aurora-cover.png?", "color": "#62dbaf"}'
+    );
 
-COPY public."Tracks" (id, user_id, tags, moods, genres, movements, keywords, duration, track_name, download_url, src, cover_image) FROM stdin;
-99999	24653570	{lofi}	{chill}	{lofi}	{lofi}	{lofi}	142	Oregon	https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/music/3.+oregon.mp3?	https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/music/3.+oregon.mp3?	{"url": "https://20240705-default-musive-s3-bucekt.s3.us-west-2.amazonaws.com/cover/aurora-cover.png?", "color": "#62dbaf"}
-\.
 
 
---
--- Data for Name: Users; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY public."Users" (id, username, passhash) FROM stdin;
-\.
 
 
 --
